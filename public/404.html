@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wander Map</title>
+  </head>
+  <body>
+    <script>
+      const segments = window.location.pathname.split('/').filter(Boolean)
+      const base = segments.length > 0 ? `/${segments[0]}/` : '/'
+      const route = window.location.pathname.startsWith(base)
+        ? window.location.pathname.slice(base.length)
+        : ''
+      sessionStorage.setItem(
+        'wander-map-pages-redirect',
+        `${route}${window.location.search}${window.location.hash}`,
+      )
+      window.location.replace(base)
+    </script>
+  </body>
+</html>

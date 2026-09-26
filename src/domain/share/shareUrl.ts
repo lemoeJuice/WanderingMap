@@ -49,7 +49,8 @@ export async function encodeSharePackage(value: SharePackage): Promise<string> {
     payload = `j${toBase64Url(serialized)}`
   }
   const url = new URL(window.location.href)
-  url.pathname = '/share'
+  const baseUrl = new URL(import.meta.env.BASE_URL, window.location.origin)
+  url.pathname = new URL('share', baseUrl).pathname
   url.search = ''
   url.hash = `data=${payload}`
   if (url.toString().length > SHARE_URL_MAX_LENGTH) {

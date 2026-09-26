@@ -28,6 +28,10 @@ pnpm test:e2e
 
 Playwright requires a Chromium browser (`pnpm exec playwright install chromium`). Unit and repository tests use Vitest, jsdom, and fake-indexeddb.
 
+## GitHub Pages
+
+Pushing to `main` runs `.github/workflows/pages.yml`, which type-checks, lints, runs unit and browser E2E tests, builds with the repository-name base path, and deploys `dist` to GitHub Pages. The workflow also includes a `404.html` fallback so Vue Router routes and read-only share links work on GitHub Pages. In repository settings, set **Pages → Build and deployment → Source** to **GitHub Actions**.
+
 ## Core boundaries
 
 - `src/domain/` contains framework- and provider-independent types, schemas, services, and derived statistics.

@@ -6,8 +6,18 @@ import './style.css'
 import './styles/atlas.css'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
+const pagesRedirect = sessionStorage.getItem('wander-map-pages-redirect')
+if (pagesRedirect) {
+  sessionStorage.removeItem('wander-map-pages-redirect')
+  window.history.replaceState(
+    null,
+    '',
+    `${import.meta.env.BASE_URL}${pagesRedirect}`,
+  )
+}
+
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', name: 'map', component: () => import('./views/MapView.vue') },
     {

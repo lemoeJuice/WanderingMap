@@ -410,7 +410,7 @@ function selectPlace(id: string): void {
 <template>
   <main class="atlas-shell">
     <aside class="sidebar">
-      <a class="brand" href="/" aria-label="Wander Map home">
+      <RouterLink class="brand" to="/" aria-label="Wander Map home">
         <span class="brand-mark"
           ><svg viewBox="0 0 32 32" aria-hidden="true">
             <path d="m5 24 7-17 6 11 3-6 6 12" />
@@ -419,7 +419,7 @@ function selectPlace(id: string): void {
         <span class="brand-name"
           >Wander<span>Map</span><small>PERSONAL ATLAS</small></span
         >
-      </a>
+      </RouterLink>
       <div class="nav-caption">YOUR ATLAS</div>
       <nav class="main-nav" aria-label="Main navigation">
         <RouterLink

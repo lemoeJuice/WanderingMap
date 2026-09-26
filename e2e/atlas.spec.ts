@@ -50,7 +50,7 @@ test('place visits, connection time, journeys, archive and read-only share stay 
   page,
   browser,
 }) => {
-  await page.goto('/')
+  await page.goto('./')
   await expect(
     page.getByRole('heading', { name: /A life, in places/ }),
   ).toBeVisible()
