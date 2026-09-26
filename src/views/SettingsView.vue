@@ -101,10 +101,10 @@ async function savePreferences(): Promise<void> {
       basemapStyle: basemapStyle.value,
       timezone: timezone.value,
       defaultCenter: current?.defaultCenter ?? {
-        longitude: 118.78,
-        latitude: 32.04,
+        longitude: 0,
+        latitude: 20,
       },
-      defaultZoom: current?.defaultZoom ?? 11,
+      defaultZoom: current?.defaultZoom ?? 2,
       updatedAt: nowIso(),
     })
     window.dispatchEvent(new CustomEvent('wander-map-settings-changed'))

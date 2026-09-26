@@ -37,8 +37,8 @@ const connections = ref<Connection[]>([])
 const visits = ref<Awaited<ReturnType<Repositories['visits']['list']>>>([])
 const transitServices = ref<TransitService[]>([])
 const mapStyle = ref('https://tiles.openfreemap.org/styles/liberty')
-const mapCenter = ref<Coordinate>({ longitude: 118.78, latitude: 32.04 })
-const mapZoom = ref(11)
+const mapCenter = ref<Coordinate>({ longitude: 0, latitude: 20 })
+const mapZoom = ref(2)
 const search = ref('')
 const providerSearchOpen = ref(false)
 const providerQuery = ref('')
@@ -55,14 +55,15 @@ const connectionOrigin = shallowRef<Place>()
 const routeDrawing = ref(false)
 const routeGeometry = ref<LineString>()
 const editingPlace = shallowRef<Place>()
-const draftCoordinate = ref<Coordinate>({ longitude: 118.78, latitude: 32.04 })
+const draftCoordinate = ref<Coordinate>({ longitude: 0, latitude: 20 })
 const loadError = ref('')
 const busy = ref(true)
 const connected = ref(navigator.onLine)
 const now = ref(new Date())
 let clockInterval: ReturnType<typeof setInterval> | undefined
 let cameraSaveTimeout: ReturnType<typeof setTimeout> | undefined
-const timeCursor = ref(new Date().getHours())
+const initialTime = new Date()
+const timeCursor = ref(initialTime.getHours() * 60 + initialTime.getMinutes())
 const showCurrentTime = ref(true)
 const timeEngine = new TimeEngine()
 
@@ -112,7 +113,7 @@ const visitCounts = computed(() => {
 const filterTime = computed(() => {
   if (showCurrentTime.value) return now.value
   const at = new Date()
-  at.setHours(timeCursor.value, 0, 0, 0)
+  at.setHours(Math.floor(timeCursor.value / 60), timeCursor.value % 60, 0, 0)
   return at
 })
 const placeTimeStates = computed(() =>
@@ -146,7 +147,9 @@ const unavailableConnectionCount = computed(
 const timeLabel = computed(() =>
   showCurrentTime.value
     ? 'Now'
-    : `${String(timeCursor.value).padStart(2, '0')}:00`,
+    : `${String(Math.floor(timeCursor.value / 60)).padStart(2, '0')}:${String(
+        timeCursor.value % 60,
+      ).padStart(2, '0')}`,
 )
 
 onMounted(async () => {
@@ -228,17 +231,93 @@ async function reload(): Promise<void> {
   transitServices.value = nextTransitServices
   mapStyle.value =
     settings?.basemapStyle ?? 'https://tiles.openfreemap.org/styles/liberty'
-  mapCenter.value = settings?.defaultCenter ?? {
-    longitude: 118.78,
-    latitude: 32.04,
-  }
-  mapZoom.value = settings?.defaultZoom ?? 11
+  mapCenter.value =
+    settings?.defaultCenter ??
+    (await getApproximatePosition()) ??
+    getLocaleApproximateCenter()
+  mapZoom.value = settings?.defaultZoom ?? 2
   if (
     session.selectedPlaceId &&
     !nextPlaces.some((place) => place.id === session.selectedPlaceId)
   ) {
     session.selectedPlaceId = null
   }
+}
+
+function getApproximatePosition(): Promise<Coordinate | null> {
+  if (!navigator.geolocation) return Promise.resolve(null)
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) =>
+        resolve({ longitude: coords.longitude, latitude: coords.latitude }),
+      () => resolve(null),
+      { enableHighAccuracy: false, maximumAge: 10 * 60 * 1000, timeout: 5000 },
+    )
+  })
+}
+
+function getLocaleApproximateCenter(): Coordinate {
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const timeZoneCenters: Record<string, Coordinate> = {
+    'Asia/Shanghai': { longitude: 105, latitude: 35 },
+    'Asia/Hong_Kong': { longitude: 114, latitude: 22 },
+    'Asia/Taipei': { longitude: 121, latitude: 24 },
+    'Asia/Tokyo': { longitude: 138, latitude: 36 },
+    'Asia/Seoul': { longitude: 127, latitude: 37 },
+    'Asia/Kolkata': { longitude: 79, latitude: 22 },
+    'Asia/Singapore': { longitude: 104, latitude: 1 },
+    'Asia/Dubai': { longitude: 55, latitude: 25 },
+    'Europe/London': { longitude: 0, latitude: 52 },
+    'Europe/Paris': { longitude: 2, latitude: 47 },
+    'Europe/Berlin': { longitude: 10, latitude: 51 },
+    'Europe/Moscow': { longitude: 38, latitude: 56 },
+    'America/New_York': { longitude: -75, latitude: 41 },
+    'America/Chicago': { longitude: -90, latitude: 42 },
+    'America/Denver': { longitude: -106, latitude: 40 },
+    'America/Los_Angeles': { longitude: -119, latitude: 37 },
+    'America/Toronto': { longitude: -79, latitude: 44 },
+    'America/Vancouver': { longitude: -123, latitude: 49 },
+    'America/Mexico_City': { longitude: -99, latitude: 19 },
+    'America/Sao_Paulo': { longitude: -46, latitude: -23 },
+    'Australia/Sydney': { longitude: 151, latitude: -34 },
+    'Pacific/Auckland': { longitude: 174, latitude: -41 },
+  }
+  if (timeZoneCenters[timeZone]) return timeZoneCenters[timeZone]
+  const timeZoneRegion = timeZone.split('/')[0] ?? ''
+  const broadTimeZoneCenters: Record<string, Coordinate> = {
+    Africa: { longitude: 20, latitude: 0 },
+    America: { longitude: -95, latitude: 40 },
+    Antarctica: { longitude: 0, latitude: -75 },
+    Asia: { longitude: 100, latitude: 30 },
+    Atlantic: { longitude: -25, latitude: 25 },
+    Australia: { longitude: 135, latitude: -25 },
+    Europe: { longitude: 15, latitude: 50 },
+    Indian: { longitude: 70, latitude: -20 },
+    Pacific: { longitude: 170, latitude: 0 },
+  }
+  if (broadTimeZoneCenters[timeZoneRegion])
+    return broadTimeZoneCenters[timeZoneRegion]
+
+  const region = navigator.language.split(/[-_]/)[1]?.toUpperCase()
+  const regionCenters: Record<string, Coordinate> = {
+    CN: { longitude: 105, latitude: 35 },
+    HK: { longitude: 114, latitude: 22 },
+    TW: { longitude: 121, latitude: 24 },
+    JP: { longitude: 138, latitude: 36 },
+    KR: { longitude: 127, latitude: 37 },
+    IN: { longitude: 79, latitude: 22 },
+    SG: { longitude: 104, latitude: 1 },
+    GB: { longitude: 0, latitude: 52 },
+    FR: { longitude: 2, latitude: 47 },
+    DE: { longitude: 10, latitude: 51 },
+    US: { longitude: -98, latitude: 39 },
+    CA: { longitude: -106, latitude: 57 },
+    MX: { longitude: -102, latitude: 23 },
+    BR: { longitude: -52, latitude: -10 },
+    AU: { longitude: 134, latitude: -25 },
+    NZ: { longitude: 172, latitude: -41 },
+  }
+  return regionCenters[region ?? ''] ?? { longitude: 0, latitude: 20 }
 }
 
 function beginCreate(coordinate: Coordinate): void {
@@ -251,8 +330,8 @@ function beginCreate(coordinate: Coordinate): void {
 
 function startCreate(): void {
   draftCoordinate.value = selectedPlace.value?.coordinate ?? {
-    longitude: 118.78,
-    latitude: 32.04,
+    longitude: mapCenter.value.longitude,
+    latitude: mapCenter.value.latitude,
   }
   editingPlace.value = undefined
   editorOpen.value = false
@@ -338,7 +417,7 @@ function handleRouteDrawn(geometry: LineString): void {
 }
 
 function resetTimeFilter(): void {
-  timeCursor.value = now.value.getHours()
+  timeCursor.value = now.value.getHours() * 60 + now.value.getMinutes()
   showCurrentTime.value = true
 }
 
@@ -535,22 +614,11 @@ function selectPlace(id: string): void {
         <div class="breadcrumb">
           <span>ATLAS</span><b>/</b><strong>Map</strong>
         </div>
-        <div class="topbar-right">
-          <span class="sync-indicator"
-            ><i />{{
-              busy
-                ? 'Opening atlas…'
-                : connected
-                  ? 'Saved locally'
-                  : 'Available offline'
-            }}</span
-          >
-          <button class="avatar-button" aria-label="Personal atlas">W</button>
-        </div>
       </header>
 
       <div class="map-stage">
         <MapCanvas
+          v-if="!busy"
           ref="mapCanvas"
           :places="placesForMap"
           :connections="connections"
@@ -849,18 +917,27 @@ function selectPlace(id: string): void {
               ><small>TIME FILTER</small><strong>{{ timeLabel }}</strong></span
             >
           </div>
-          <input
-            v-model.number="timeCursor"
-            type="range"
-            min="0"
-            max="23"
-            step="1"
-            aria-label="Map time filter"
-            @input="showCurrentTime = false"
-          />
+          <div class="timeline-slider">
+            <input
+              v-model.number="timeCursor"
+              type="range"
+              min="0"
+              max="1440"
+              step="15"
+              aria-label="Map time filter"
+              @input="showCurrentTime = false"
+            />
+            <span
+              v-for="tick in [0, 25, 50, 75, 100]"
+              :key="tick"
+              class="timeline-tick"
+              :style="{ left: `${tick}%` }"
+              aria-hidden="true"
+            />
+          </div>
           <div class="timeline-labels">
             <span>00:00</span><span>06:00</span><span>12:00</span
-            ><span>18:00</span><span>23:00</span>
+            ><span>18:00</span><span>24:00</span>
           </div>
           <button class="reset-time" @click="resetTimeFilter">
             NOW <span>↺</span>

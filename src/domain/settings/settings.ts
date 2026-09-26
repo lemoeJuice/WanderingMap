@@ -9,10 +9,10 @@ export const appSettingsSchema = z.object({
     .string()
     .default('https://tiles.openfreemap.org/styles/liberty'),
   defaultCenter: coordinateSchema.default({
-    longitude: 118.78,
-    latitude: 32.04,
+    longitude: 0,
+    latitude: 20,
   }),
-  defaultZoom: z.number().min(0).max(22).default(11),
+  defaultZoom: z.number().min(0).max(22).default(2),
   updatedAt: z.string().datetime(),
 })
 

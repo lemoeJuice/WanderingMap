@@ -57,10 +57,6 @@ export class MapController {
       zoom: options.initialZoom,
       cooperativeGestures: true,
     })
-    this.map.addControl(
-      new maplibregl.NavigationControl({ showCompass: true }),
-      'top-right',
-    )
     this.map.on('style.load', () => {
       this.loaded = true
       options.container.dataset.mapReady = 'true'
